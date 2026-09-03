@@ -36,15 +36,15 @@ Conecta keeps the moving parts small:
 
 ```mermaid
 flowchart LR
-    CI[GitHub Actions, local build, or any CI/CD] -->|Webhook: image tag + config| C[Conecta]
+    CI[Your favourite CICD] -->|Webhook| C[Conecta]
     C <--> DB[(SQLite)]
     C -->|Docker CLI| D[Docker on your VPS]
     D --> N[New blue/green slot]
     C -->|HTTP health check| N
     C -->|Active A/AAAA/SRV records| DNS[Conecta DNS]
-    P[Reverse proxy<br/>Caddy, Traefik, nginx, or any other] -->|DNS query| DNS
-    DNS -->|Active destination| P
+    P[Reverse proxy] -->|DNS query| DNS
     P -->|Route traffic| N
+    U[Traffic] --> P
 ```
 
 ## What is included
