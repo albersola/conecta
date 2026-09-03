@@ -1,0 +1,22 @@
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# runtime
+/.deno/
+/build
+/.conecta
+/data/
+/env/
+
+# misc
+.DS_Store
+*.pem
+
+*.log
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example

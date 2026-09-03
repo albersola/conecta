@@ -1,0 +1,17 @@
+{
+	admin off
+	auto_https off
+}
+
+{$CONECTA_CADDY_ADDRESS} {
+	reverse_proxy {
+		dynamic srv _http._tcp.{$CONECTA_PROJECT_ID}.{$CONECTA_DNS_ZONE} {
+			refresh 5s
+			resolvers conecta:{$CONECTA_DNS_PORT}
+		}
+
+		transport http {
+			resolvers conecta:{$CONECTA_DNS_PORT}
+		}
+	}
+}

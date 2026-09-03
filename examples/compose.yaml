@@ -1,0 +1,52 @@
+services:
+  conecta:
+    build:
+      context: ..
+      target: production
+    user: "0:0"
+    env_file:
+      - ../.env
+    environment:
+      CONECTA_DB_PATH: /data/conecta.sqlite
+      CONECTA_DNS_HOSTNAME: 0.0.0.0
+      CONECTA_DNS_PORT: ${CONECTA_DNS_PORT:-5353}
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}/tcp"
+    expose:
+      - "${CONECTA_DNS_PORT:-5353}/udp"
+      - "${CONECTA_DNS_PORT:-5353}/tcp"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - conecta-data:/data
+      - ../env:/data/env:ro
+    networks:
+      - conecta
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      CONECTA_DNS_PORT: ${CONECTA_DNS_PORT:-5353}
+      CONECTA_DNS_ZONE: ${CONECTA_DNS_ZONE:-svc.internal}
+      CONECTA_PROJECT_ID: ${CONECTA_PROJECT_ID:-api}
+      CONECTA_CADDY_ADDRESS: ${CONECTA_CADDY_ADDRESS:-:80}
+    ports:
+      - "${CADDY_HTTP_PORT:-8080}:80/tcp"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - conecta
+    depends_on:
+      - conecta
+    restart: unless-stopped
+
+networks:
+  conecta:
+    name: ${CONECTA_DOCKER_NETWORK:-conecta}
+
+volumes:
+  conecta-data:
+  caddy-data:
+  caddy-config:
