@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine AS base
+FROM denoland/deno:alpine-2.9.6 AS base
 WORKDIR /app
 RUN apk add --no-cache docker-cli
 

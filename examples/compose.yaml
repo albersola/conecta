@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
 
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2.11.4-alpine
     environment:
       CONECTA_DNS_PORT: ${CONECTA_DNS_PORT:-5353}
       CONECTA_DNS_ZONE: ${CONECTA_DNS_ZONE:-svc.internal}
