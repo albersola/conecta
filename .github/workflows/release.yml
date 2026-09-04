@@ -1,0 +1,96 @@
+name: Test and publish release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+env:
+  DENO_VERSION: 2.9.6
+  REGISTRY: ghcr.io
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the release
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Verify that the release belongs to main
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          git fetch --no-tags origin "+refs/heads/main:refs/remotes/origin/main"
+          release_sha="$(git rev-list -n 1 "refs/tags/${RELEASE_TAG}")"
+          git merge-base --is-ancestor "$release_sha" origin/main || {
+            echo "::error::Release tag ${RELEASE_TAG} does not belong to main"
+            exit 1
+          }
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+          cache: true
+
+      - name: Type-check
+        run: deno task check
+
+      - name: Run tests
+        run: deno task test
+
+  publish:
+    name: Publish image
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out the release
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set image name
+        id: image
+        run: echo "name=${REGISTRY}/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Set image metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=raw,value=${{ github.event.release.tag_name }}
+            type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
